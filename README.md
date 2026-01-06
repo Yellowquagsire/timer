@@ -1,2 +1,281 @@
-# timer
-timer
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baroque Country Timer</title>
+    <style>
+        :root {
+            --gold: #d4af37;
+            --dark-wood: #3e2723;
+            --marble: #fdfaf5;
+            --text-color: #2c1e14;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle, #5d4037 0%, #1a1110 100%);
+            color: var(--text-color);
+            font-family: "Palatino", "Georgia", serif;
+        }
+
+        /* 巴洛克金邊雕花外框 */
+        .outer-frame {
+            background: var(--dark-wood);
+            padding: 15px;
+            border-radius: 100px 100px 30px 30px; /* 模擬鐘塔造型 */
+            box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+            border: 5px solid #2a1b18;
+            position: relative;
+        }
+
+        .gold-border {
+            border: 4px double var(--gold);
+            padding: 40px;
+            border-radius: 90px 90px 20px 20px;
+            background: var(--marble);
+            background-image: url('https://www.transparenttextures.com/patterns/marble-similar.png');
+            text-align: center;
+            width: 420px;
+        }
+
+        h1 {
+            font-variant: small-caps;
+            letter-spacing: 4px;
+            font-size: 1rem;
+            margin-bottom: 25px;
+            color: var(--dark-wood);
+            border-bottom: 1px solid var(--gold);
+            display: inline-block;
+            padding-bottom: 5px;
+        }
+
+        /* 時間顯示區 */
+        .timer-display {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .unit {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        input[type="number"] {
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            font-size: 3rem; /* 大小適中，不裁切 */
+            font-family: "Baskerville", serif;
+            width: 70px;
+            text-align: center;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .colon {
+            font-size: 2rem;
+            margin-top: -10px;
+            color: var(--gold);
+            font-weight: bold;
+        }
+
+        .label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #8d6e63;
+        }
+
+        /* 控制按鈕 */
+        .controls {
+            margin: 30px 0;
+        }
+
+        button {
+            background: var(--dark-wood);
+            color: var(--gold);
+            border: 1px solid var(--gold);
+            padding: 8px 25px;
+            font-family: inherit;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0 10px;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #4e342e;
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+        }
+
+        /* 標語文字 */
+        .motto-container {
+            margin-top: 10px;
+            padding-top: 20px;
+            border-top: 1px solid var(--gold);
+        }
+
+        .motto {
+            font-size: 0.9rem;
+            line-height: 1.8;
+            color: #4a3728;
+            font-style: italic;
+            text-shadow: 0.5px 0.5px 0px rgba(212, 175, 55, 0.2);
+        }
+
+        /* 隱藏數字滾輪 */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="outer-frame">
+        <div class="gold-border">
+            <h1>Tempus Fugit</h1> <div class="timer-display">
+                <div class="unit">
+                    <input type="number" id="h" min="0" max="4" value="00" onchange="limit()">
+                    <span class="label">Hours</span>
+                </div>
+                <span class="colon">:</span>
+                <div class="unit">
+                    <input type="number" id="m" min="0" max="59" value="00" onchange="limit()">
+                    <span class="label">Minutes</span>
+                </div>
+                <span class="colon">:</span>
+                <div class="unit">
+                    <input type="number" id="s" min="0" max="59" value="00" onchange="limit()">
+                    <span class="label">Seconds</span>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button id="mainBtn" onclick="toggle()">Begin</button>
+                <button onclick="reset()">Reset</button>
+            </div>
+
+            <div class="motto-container">
+                <p class="motto">
+                    "我已經把2026搞砸了，<br>
+                    2027將會是我重新出發的一年"
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let timeLeft = 0;
+        let timer = null;
+        let isRunning = false;
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function limit() {
+            let hh = parseInt(document.getElementById('h').value) || 0;
+            if (hh >= 4) {
+                document.getElementById('h').value = "04";
+                document.getElementById('m').value = "00";
+                document.getElementById('s').value = "00";
+            }
+        }
+
+        // 傳統時鐘滴答聲 (模擬機械碰撞音)
+        function playTick() {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1500, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.03);
+        }
+
+        // 鬧鐘聲：巴洛克式的低沉鐘鳴
+        function playAlarm() {
+            const bellFreqs = [220, 330, 440];
+            bellFreqs.forEach((f, i) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(f, audioCtx.currentTime + (i * 0.5));
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime + (i * 0.5));
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + (i * 0.5) + 1.5);
+                osc.start(audioCtx.currentTime + (i * 0.5));
+                osc.stop(audioCtx.currentTime + (i * 0.5) + 2);
+            });
+        }
+
+        function toggle() {
+            if (isRunning) {
+                clearInterval(timer);
+                isRunning = false;
+                document.getElementById('mainBtn').innerText = "Begin";
+            } else {
+                let h = parseInt(document.getElementById('h').value) || 0;
+                let m = parseInt(document.getElementById('m').value) || 0;
+                let s = parseInt(document.getElementById('s').value) || 0;
+                timeLeft = h * 3600 + m * 60 + s;
+
+                if (timeLeft <= 0) return;
+
+                isRunning = true;
+                document.getElementById('mainBtn').innerText = "Pause";
+                
+                timer = setInterval(() => {
+                    if (timeLeft > 0) {
+                        timeLeft--;
+                        updateDisplay();
+                        playTick();
+                    } else {
+                        clearInterval(timer);
+                        playAlarm();
+                        alert("時間已到。2027年正等待著你的輝煌。");
+                        reset();
+                    }
+                }, 1000);
+            }
+        }
+
+        function updateDisplay() {
+            let h = Math.floor(timeLeft / 3600);
+            let m = Math.floor((timeLeft % 3600) / 60);
+            let s = timeLeft % 60;
+            document.getElementById('h').value = h.toString().padStart(2, '0');
+            document.getElementById('m').value = m.toString().padStart(2, '0');
+            document.getElementById('s').value = s.toString().padStart(2, '0');
+        }
+
+        function reset() {
+            clearInterval(timer);
+            isRunning = false;
+            document.getElementById('mainBtn').innerText = "Begin";
+            document.getElementById('h').value = "00";
+            document.getElementById('m').value = "00";
+            document.getElementById('s').value = "00";
+        }
+    </script>
+</body>
+</html>
